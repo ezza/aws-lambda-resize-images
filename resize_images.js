@@ -50,9 +50,16 @@ exports.handler = function (event, context) {
   console.log("Reading options from event:\n", util.inspect(event, {
     depth: 5
   }));
-  var srcBucket = event.Records[0].s3.bucket.name;
-  // Object key may have spaces or unicode non-ASCII characters.
-  var srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
+  if(typeof event.Records == 'undefined') {
+    data = JSON.parse(event.body);
+    var srcBucket = data.bucket_name;
+    var srcKey = data.key;
+  } else {
+    console.log("Found records:\n", util.inspect(event.Records));
+    var srcBucket = event.Records[0].s3.bucket.name;
+    // Object key may have spaces or unicode non-ASCII characters.
+    var srcKey = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, " "));
+  };
   // derive the file name and extension
   /*var srcFile = srcKey.match(/(.+)\.([^.]+)/);
   var srcName = srcFile[1];
@@ -79,7 +86,8 @@ exports.handler = function (event, context) {
 
       var scalingFactor = Math.min(
         options.MAX_WIDTH / size.width,
-        options.MAX_HEIGHT / size.height
+        options.MAX_HEIGHT / size.height,
+        1
       );
       var width = scalingFactor * size.width;
       var height = scalingFactor * size.height;
@@ -91,7 +99,7 @@ exports.handler = function (event, context) {
           if (err) {
             callback(err);
           } else {
-            uploadImage(data.ContentType, buffer, options, callback);
+            uploadImage('image/jpg', buffer, options, callback);
           }
         });
     });
